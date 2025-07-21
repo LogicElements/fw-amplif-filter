@@ -22,6 +22,7 @@
 #include "crc.h"
 #include "dac.h"
 #include "dma.h"
+#include "iwdg.h"
 #include "tim.h"
 #include "usart.h"
 #include "usb_device.h"
@@ -104,6 +105,7 @@ int main(void)
   MX_CRC_Init();
   MX_TIM5_Init();
   MX_TIM16_Init();
+  MX_IWDG1_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
