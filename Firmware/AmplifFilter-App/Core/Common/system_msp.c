@@ -206,21 +206,6 @@ void SystemClock_Config2(void)
 }
 
 
-
-
-
-
-Status_t System_ReloadIwdg(void)
-{
-  Status_t ret = STATUS_OK;
-
-//  ret = HAL_IWDG_Refresh(&hiwdg);
-
-  return ret;
-}
-
-
-
 Status_t System_PvdInit(void)
 {
   PWR_PVDTypeDef sConfigPVD;

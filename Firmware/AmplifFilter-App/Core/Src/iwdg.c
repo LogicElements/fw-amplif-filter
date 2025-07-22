@@ -52,5 +52,13 @@ void MX_IWDG1_Init(void)
 }
 
 /* USER CODE BEGIN 1 */
+Status_t System_ReloadIwdg(void)
+{
+  Status_t ret = STATUS_OK;
+
+  ret = HAL_IWDG_Refresh(&hiwdg1);
+
+  return ret;
+}
 
 /* USER CODE END 1 */

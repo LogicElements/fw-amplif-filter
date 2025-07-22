@@ -32,6 +32,8 @@
 /* USER CODE BEGIN Includes */
 #include "common.h"
 #include "usbd_cdc_if.h"
+#include "system_msp.h"
+#include "configuration.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -108,6 +110,8 @@ int main(void)
   MX_IWDG1_Init();
   /* USER CODE BEGIN 2 */
 
+  Config_Init();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -116,12 +120,14 @@ int main(void)
   while (1)
   {
     CDC_PacketReceived();
+    conf.sys.tick = HAL_GetTick();
 
     if (TICK_EXPIRED(tick))
     {
-      tick += 50;
+      tick += 100;
 
-
+      System_ReloadIwdg();
+      Control_Handle();
     }
     /* USER CODE END WHILE */
 
