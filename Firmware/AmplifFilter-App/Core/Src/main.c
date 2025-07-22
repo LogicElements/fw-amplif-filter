@@ -94,6 +94,8 @@ int main(void)
   PeriphCommonClock_Config();
 
   /* USER CODE BEGIN SysInit */
+  /* Disable IWDG in debug mode */
+  DBGMCU->APB4FZ1 = DBGMCU->APB4FZ1 | DBGMCU_APB4FZ1_DBG_IWDG1;
 
   /* USER CODE END SysInit */
 
