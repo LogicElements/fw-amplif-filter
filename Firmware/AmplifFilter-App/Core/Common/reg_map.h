@@ -84,6 +84,8 @@
 #define CONF_MEAS_AVERAGE          0x05008212u  ///< Average value
 #define CONF_MEAS_THRESHLOD        0x0500C252u  ///< Threshold
 #define CONF_MEAS_HYSTERESIS       0x05010252u  ///< Hysteresis
+#define CONF_MEAS_GAIN             0x05014570u  ///< Amplifier gain
+#define CONF_MEAS_OFFSET           0x05015152u  ///< Offset servo
 
 
 /** @} */
@@ -115,14 +117,14 @@
 #define CONF_REG_LOGGER_NUMBER     (0)
 #define CONF_REG_CALIB_NUMBER      (1)
 #define CONF_REG_SYNCED_NUMBER     (0)
-#define CONF_REG_FLASH_NUMBER      (1)
+#define CONF_REG_FLASH_NUMBER      (2)
 #define CONF_REG_LOGGER_LENGTH     (0)
 #define CONF_REG_CALIB_LENGTH      (8)
 #define CONF_REG_SYNCED_LENGTH     (0)
-#define CONF_REG_FLASH_LENGTH      (8)
+#define CONF_REG_FLASH_LENGTH      (13)
 #define CONF_REG_LOCAL_LENGTH      (0)
 
-#define CONF_DIM_CONDITION ((sizeof(conf_reg_sys_t) != 28) || (sizeof(conf_reg_fact_t) != 16) || (sizeof(conf_reg_firm_t) != 16) || (sizeof(conf_reg_calib_t) != 4) || (sizeof(conf_reg_meas_t) != 20) || (sizeof(conf_reg_dbg_t) != 4) || 0)
+#define CONF_DIM_CONDITION ((sizeof(conf_reg_sys_t) != 28) || (sizeof(conf_reg_fact_t) != 16) || (sizeof(conf_reg_firm_t) != 16) || (sizeof(conf_reg_calib_t) != 4) || (sizeof(conf_reg_meas_t) != 28) || (sizeof(conf_reg_dbg_t) != 4) || 0)
 
 
 /** @} */
@@ -158,6 +160,14 @@ typedef enum
   MEAS_TRG_RISING = 1,
   MEAS_TRG_FALLING = 2,
 }meas_trigger_t ;
+
+typedef enum
+{
+  GAIN_1 = 0,
+  GAIN_3 = 1,
+  GAIN_10 = 2,
+  GAIN_20 = 3,
+}meas_gain_t ;
 
 typedef struct __packed __aligned(4)
 {
@@ -203,6 +213,8 @@ typedef struct __packed __aligned(4)
   float average;
   float threshlod;
   float hysteresis;
+  meas_gain_t gain;
+  uint32_t offset;
 }conf_reg_meas_t;
 
 typedef struct __packed __aligned(4)

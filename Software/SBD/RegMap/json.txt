@@ -475,5 +475,49 @@
     "Units":"V", 
     "IsVisible": true, 
     "ConfigUser": false 
+  },
+  {
+    "Category":"MEAS", 
+    "Name":"GAIN", 
+    "Label":"Amplifier gain", 
+    "Id":83969392, 
+    "VarType":"ENUM", 
+    "Access":"RWF", 
+    "Description":"\r\nAllowed values: \r\nGain 1x - .\r\nGain 3x - .\r\nGain 10x - .\r\nGain 20x - .\r\n", 
+    "Value":"0",
+    "NewValue":"0",
+    "EnumStr": [
+      "Gain 1x",
+      "Gain 3x",
+      "Gain 10x",
+      "Gain 20x"
+    ],
+    "EnumValue": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "Reset":"0",
+    "Units":"", 
+    "IsVisible": true, 
+    "ConfigUser": false 
+  },
+  {
+    "Category":"MEAS", 
+    "Name":"OFFSET", 
+    "Label":"Offset servo", 
+    "Id":83972434, 
+    "VarType":"INT", 
+    "Access":"RW", 
+    "Description":"Enable DC servo for offset compensation", 
+    "Value":"0",
+    "NewValue":"0",
+    "Reset":"0",
+    "Min":0,
+    "Max":1,
+    "Units":"", 
+    "IsVisible": true, 
+    "ConfigUser": false 
   }
 ]
