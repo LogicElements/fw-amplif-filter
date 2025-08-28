@@ -73,7 +73,7 @@
 #define CONF_FIRM_ASSEMBLY_INFO    0x02004112u  ///< Assembly date
 #define CONF_FIRM_APP_CHECKSUM     0x02008112u  ///< CRC checksum
 #define CONF_FIRM_APP_SIZE         0x0200C112u  ///< Firmware size
-#define CONF_DBG_WRITES_CONF       0x06000112u  ///< Configuration writes
+#define CONF_DBG_WRITES_CONF       0x07000112u  ///< Configuration writes
 #define CONF_CALIB_MODE            0x04000151u  ///< Calibration mode
 #define CONF_CALIB_RESERVED        0x04002151u  ///< Reserved
 #define CONF_MEAS_ENABLE           0x05000550u  ///< Enable detection
@@ -86,6 +86,11 @@
 #define CONF_MEAS_HYSTERESIS       0x05010252u  ///< Hysteresis
 #define CONF_MEAS_GAIN             0x05014570u  ///< Amplifier gain
 #define CONF_MEAS_OFFSET           0x05015152u  ///< Offset servo
+#define CONF_DSP_RMS               0x06000252u  ///< Root mean square
+#define CONF_DSP_MEAN              0x06004252u  ///< Mean
+#define CONF_DSP_VAR               0x06008252u  ///< Variance
+#define CONF_DSP_STD               0x0600C252u  ///< Standard deviation
+#define CONF_DSP_FIR               0x06010252u  ///< Filtred value
 
 
 /** @} */
@@ -124,7 +129,7 @@
 #define CONF_REG_FLASH_LENGTH      (13)
 #define CONF_REG_LOCAL_LENGTH      (0)
 
-#define CONF_DIM_CONDITION ((sizeof(conf_reg_sys_t) != 28) || (sizeof(conf_reg_fact_t) != 16) || (sizeof(conf_reg_firm_t) != 16) || (sizeof(conf_reg_calib_t) != 4) || (sizeof(conf_reg_meas_t) != 28) || (sizeof(conf_reg_dbg_t) != 4) || 0)
+#define CONF_DIM_CONDITION ((sizeof(conf_reg_sys_t) != 28) || (sizeof(conf_reg_fact_t) != 16) || (sizeof(conf_reg_firm_t) != 16) || (sizeof(conf_reg_calib_t) != 4) || (sizeof(conf_reg_meas_t) != 28) || (sizeof(conf_reg_dsp_t) != 20) || (sizeof(conf_reg_dbg_t) != 4) || 0)
 
 
 /** @} */
@@ -219,6 +224,15 @@ typedef struct __packed __aligned(4)
 
 typedef struct __packed __aligned(4)
 {
+  float rms;
+  float mean;
+  float var;
+  float std;
+  float fir;
+}conf_reg_dsp_t;
+
+typedef struct __packed __aligned(4)
+{
   uint32_t writes_conf;
 }conf_reg_dbg_t;
 
@@ -231,8 +245,8 @@ typedef struct
   uint32_t res4;
   conf_reg_calib_t calib;
   conf_reg_meas_t meas;
+  conf_reg_dsp_t dsp;
   conf_reg_dbg_t dbg;
-  uint32_t res8;
   uint32_t res9;
   uint32_t res10;
   uint32_t res11;
