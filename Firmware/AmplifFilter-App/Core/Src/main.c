@@ -37,6 +37,10 @@
 
 #include "arm_math.h"
 
+// for random number gen
+#include "stdlib.h"
+#include "stdint.h"
+
 //#include "stdbool.h"
 /* USER CODE END Includes */
 
@@ -54,7 +58,7 @@
 #define ADC_16b_HALF_RANGE	32768					// Half of ADC range --> ~equals to 0 V
 #define ADC_16b_hysteresis	10						// Hysteresis of ADC for zero-crossing
 
-#define FIR_SIZE			93						// Size of digital fir filter
+#define FIR_SIZE			101						// Size of digital fir filter
 #define FIR_BLOCK_SIZE		1						// Size of block processed by FIR
 #define STAT_BLOCK_SIZE		100						// Block size for statistic calculations
 
@@ -85,6 +89,13 @@ void cleanBuffer(float* buff);
 void insertNewVal(float* buff);
 float average(float* buff);
 float FIRCalc(float* fir_buff, float* fir_coef);
+
+float random_float(void) {
+    // rand() vrací 0..RAND_MAX
+    float r = (float)rand() / (float)RAND_MAX;  // 0..1
+    return r*0.2f-0.1f;;                             // -0.5 .. 0.5
+}
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -98,8 +109,9 @@ uint8_t servo_on = 0;
 
 uint8_t fifo_loaded = 0;
 
-//uint8_t rising_edge = 0;
-//uint8_t zero_cross_en = 1;
+float data_buffer[2000];
+uint16_t data_buff_cnt = 0;
+float data_filt[2000];
 
 float raw_filt = 0.0;
 
@@ -111,103 +123,37 @@ float dsp_var = 0.0;		// Variance of measured data
 float dsp_rms = 0.0;		// RMS of measured data
 float dsp_std = 0.0;		// Standard deviation of measured data
 
-/* FIR coef for fs=2kHz, f_cut=500Hz, transition bandwidth = 100 Hz Window=Blackman */
-const float fir_coef[FIR_SIZE] =
-{
-    0.000000000000000000f,
-    0.000002974374552042f,
-    0.000000000000000000f,
-   -0.000028387847593379f,
-    0.000000000000000000f,
-    0.000084829379653271f,
-    0.000000000000000000f,
-   -0.000181125510341879f,
-    0.000000000000000001f,
-    0.000329541343285101f,
-   -0.000000000000000001f,
-   -0.000546052274151878f,
-   -0.000000000000000001f,
-    0.000850560671370891f,
-   -0.000000000000000002f,
-   -0.001267111325235772f,
-    0.000000000000000008f,
-    0.001824197529515397f,
-   -0.000000000000000004f,
-   -0.002555305526260385f,
-   -0.000000000000000006f,
-    0.003499932838212230f,
-   -0.000000000000000006f,
-   -0.004705464012069836f,
-    0.000000000000000027f,
-    0.006230554098744279f,
-   -0.000000000000000009f,
-   -0.008151182920722411f,
-    0.000000000000000010f,
-    0.010571594018297974f,
-   -0.000000000000000012f,
-   -0.013644642287298820f,
-    0.000000000000000013f,
-    0.017611585469176697f,
-   -0.000000000000000015f,
-   -0.022885891877288757f,
-    0.000000000000000016f,
-    0.030249263398740431f,
-   -0.000000000000000017f,
-   -0.041383907115159504f,
-    0.000000000000000018f,
-    0.060681966652701834f,
-   -0.000000000000000019f,
-   -0.104291239154452320f,
-    0.000000000000000019f,
-    0.317702591725483319f,
-    0.500001436701682733f,
-    0.317702591725483319f,
-    0.000000000000000019f,
-   -0.104291239154452334f,
-   -0.000000000000000019f,
-    0.060681966652701834f,
-    0.000000000000000018f,
-   -0.041383907115159504f,
-   -0.000000000000000017f,
-    0.030249263398740425f,
-    0.000000000000000016f,
-   -0.022885891877288761f,
-   -0.000000000000000015f,
-    0.017611585469176700f,
-    0.000000000000000013f,
-   -0.013644642287298826f,
-   -0.000000000000000012f,
-    0.010571594018297969f,
-    0.000000000000000010f,
-   -0.008151182920722413f,
-   -0.000000000000000009f,
-    0.006230554098744283f,
-    0.000000000000000027f,
-   -0.004705464012069839f,
-   -0.000000000000000006f,
-    0.003499932838212230f,
-   -0.000000000000000006f,
-   -0.002555305526260388f,
-   -0.000000000000000004f,
-    0.001824197529515396f,
-    0.000000000000000008f,
-   -0.001267111325235773f,
-   -0.000000000000000002f,
-    0.000850560671370891f,
-   -0.000000000000000001f,
-   -0.000546052274151879f,
-   -0.000000000000000001f,
-    0.000329541343285101f,
-    0.000000000000000001f,
-   -0.000181125510341878f,
-    0.000000000000000000f,
-    0.000084829379653271f,
-    0.000000000000000000f,
-   -0.000028387847593379f,
-    0.000000000000000000f,
-    0.000002974374552042f,
-    0.000000000000000000f
+/* fsample=2khz, fcut=10hz 6dB window blackmann */
+const float fir_coef[FIR_SIZE] = {
+    0.0f, 0.000005732734735f, 0.000023473445253f, 0.000054183281463f,
+    0.000099026801763f, 0.000159375398653f, 0.000236804160522f, 0.000333081901772f,
+    0.000450154358987f, 0.000590120442212f, 0.000755202025175f, 0.000947707216255f,
+    0.001169988303445f, 0.001424394315109f, 0.001713219913654f, 0.002038650214672f,
+    0.002402704209089f, 0.002807176904753f, 0.003253581002355f, 0.003743091132492f,
+    0.004276488907635f, 0.004854113794863f, 0.005475818179548f, 0.006140925921500f,
+    0.006848204880953f, 0.007595838978887f, 0.008381414227188f, 0.009201915934682f,
+    0.010053729638457f, 0.010932656936347f, 0.011833940632641f, 0.012752301059663f,
+    0.013681978918612f, 0.014616790227592f, 0.015550190582871f, 0.016475344076753f,
+    0.017385203391314f, 0.018272593617439f, 0.019130295142531f, 0.019951138645411f,
+    0.020728098228574f, 0.021454378962517f, 0.022123515605927f, 0.022729448974133f,
+    0.023266619071364f, 0.023730035871267f, 0.024115353822708f, 0.024418924003839f,
+    0.024637861177325f, 0.024770069867373f, 0.024814281612635f, 0.024770069867373f,
+    0.024637861177325f, 0.024418924003839f, 0.024115353822708f, 0.023730035871267f,
+    0.023266619071364f, 0.022729448974133f, 0.022123515605927f, 0.021454378962517f,
+    0.020728098228574f, 0.019951138645411f, 0.019130295142531f, 0.018272593617439f,
+    0.017385203391314f, 0.016475344076753f, 0.015550190582871f, 0.014616790227592f,
+    0.013681978918612f, 0.012752301059663f, 0.011833940632641f, 0.010932656936347f,
+    0.010053729638457f, 0.009201915934682f, 0.008381414227188f, 0.007595838978887f,
+    0.006848204880953f, 0.006140925921500f, 0.005475818179548f, 0.004854113794863f,
+    0.004276488907635f, 0.003743091132492f, 0.003253581002355f, 0.002807176904753f,
+    0.002402704209089f, 0.002038650214672f, 0.001713219913654f, 0.001424394315109f,
+    0.001169988303445f, 0.000947707216255f, 0.000755202025175f, 0.000590120442212f,
+    0.000450154358987f, 0.000333081901772f, 0.000236804160522f, 0.000159375398653f,
+    0.000099026801763f, 0.000054183281463f, 0.000023473445253f, 0.000005732734735f,
+    0.0f
 };
+
+
 
 /* USER CODE END 0 */
 
@@ -285,6 +231,12 @@ int main(void)
 	/* FIR Init */
 	arm_fir_init_f32(&S, FIR_SIZE, fir_coef, firState32, FIR_BLOCK_SIZE);
 
+	// ToDo - rozdelit zpracovani dat podle obsahu registru --> raw x fir filtering
+	// ToDo - vytvořit funkce na zpracovani dat, později rozdělit na moduly
+	// ToDo - zjistit vzorkovacku a navrhnout spravny FIR vcetne implementace - je spravne?
+	// ToDo - nakonec kontrola fci na statistiku - na jak velkem bufferu pocitat?
+	// ToDo - pro overeni funkcnosti firu generovat sum pricist k raw a co bude na vystupu
+
 	while (1)
 	{
 		CDC_PacketReceived();
@@ -306,15 +258,34 @@ int main(void)
 		if (new_raw_data)
 		{
 			raw_value = (((float) adc_value * k_16b) - 1.25) * 8;
+
+			// Add noise in range -0.5--0.5 V
+			//raw_value+=3.0f * random_float();
+
 			conf.meas.raw = raw_value;
 			insertNewVal(buff);
 			raw_average = average(buff);
 			conf.meas.average = raw_average;
 
+
+
 			/* FIR filter implementation on moving float buff */
 			//raw_filt = FIRCalc(buff, fir_coef);
 			arm_fir_f32(&S, &raw_value, &raw_filt, FIR_BLOCK_SIZE);
 			conf.dsp.fir = raw_filt;
+
+			/* Add to 2000 size buff */
+			//data_buffer[data_buff_cnt] = adc_value;
+			data_buffer[data_buff_cnt] = raw_value;
+			data_filt[data_buff_cnt] = raw_filt;
+			if (data_buff_cnt >= 2000)
+			{
+				data_buff_cnt = 0;
+			}
+			else
+			{
+				data_buff_cnt++;
+			}
 
 			/* Statistic functions */
 			arm_mean_f32(buff, STAT_BLOCK_SIZE, &dsp_mean);
@@ -331,6 +302,7 @@ int main(void)
 
 			new_raw_data = 0;		// Turn flag off --> data processed
 		}
+
 
 		/* Every 2s change threshold value - depend on average */
 		if (conf.sys.tick > tm_analog)
