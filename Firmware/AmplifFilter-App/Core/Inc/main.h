@@ -67,18 +67,20 @@ void Error_Handler(void);
 #define PH0_MCU_GPIO_Port GPIOH
 #define PH1_MCU_Pin GPIO_PIN_1
 #define PH1_MCU_GPIO_Port GPIOH
-#define SERVO_Pin GPIO_PIN_0
+#define MUX_ON_Pin GPIO_PIN_0
+#define MUX_ON_GPIO_Port GPIOC
+#define GAIN_3_Pin GPIO_PIN_2
+#define GAIN_3_GPIO_Port GPIOC
+#define SERVO_Pin GPIO_PIN_3
 #define SERVO_GPIO_Port GPIOC
-#define GAIN_10_Pin GPIO_PIN_2
-#define GAIN_10_GPIO_Port GPIOC
-#define GAIN_1_Pin GPIO_PIN_3
-#define GAIN_1_GPIO_Port GPIOC
 #define LD1_Pin GPIO_PIN_0
 #define LD1_GPIO_Port GPIOB
-#define GAIN_3_Pin GPIO_PIN_1
-#define GAIN_3_GPIO_Port GPIOB
-#define GAIN_20_Pin GPIO_PIN_11
-#define GAIN_20_GPIO_Port GPIOF
+#define GAIN_1_Pin GPIO_PIN_1
+#define GAIN_1_GPIO_Port GPIOB
+#define GAIN_10_Pin GPIO_PIN_11
+#define GAIN_10_GPIO_Port GPIOF
+#define GAIN_20_Pin GPIO_PIN_9
+#define GAIN_20_GPIO_Port GPIOE
 #define LD3_Pin GPIO_PIN_14
 #define LD3_GPIO_Port GPIOB
 #define STLINK_RX_Pin GPIO_PIN_8
@@ -93,10 +95,9 @@ void Error_Handler(void);
 #define USB_FS_N_GPIO_Port GPIOA
 #define USB_FS_P_Pin GPIO_PIN_12
 #define USB_FS_P_GPIO_Port GPIOA
-#define MUX_ON_Pin GPIO_PIN_0
-#define MUX_ON_GPIO_Port GPIOD
 #define LD2_Pin GPIO_PIN_1
 #define LD2_GPIO_Port GPIOE
+
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

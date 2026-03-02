@@ -37,6 +37,8 @@
 
 #include "arm_math.h"
 
+#include "meas.h"
+
 // for random number gen
 #include "stdlib.h"
 #include "stdint.h"
@@ -51,16 +53,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define BUFF_SIZE			100						// Size of buffer for average calculation
-//#define k_16b				(3.3/pow(2,16))			// For calculate voltage on ADC input
-#define k_16b				(2.5/(pow(2,16) - 1))	// For calculate voltage on ADC input (External 2.5 V reference)
-
-#define ADC_16b_HALF_RANGE	32768					// Half of ADC range --> ~equals to 0 V
-#define ADC_16b_hysteresis	10						// Hysteresis of ADC for zero-crossing
-
-#define FIR_SIZE			101						// Size of digital fir filter
-#define FIR_BLOCK_SIZE		1						// Size of block processed by FIR
-#define STAT_BLOCK_SIZE		100						// Block size for statistic calculations
 
 /* USER CODE END PD */
 
@@ -77,17 +69,12 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-void PeriphCommonClock_Config(void);
 /* USER CODE BEGIN PFP */
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc);
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef *hadc);
 
-Status_t setParams();
-void cleanBuffer(float* buff);
-void insertNewVal(float* buff);
-float average(float* buff);
 float FIRCalc(float* fir_buff, float* fir_coef);
 
 float random_float(void) {
@@ -101,60 +88,6 @@ float random_float(void) {
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-float raw_value = 0.0;
-uint32_t adc_value = 0;
-uint8_t new_raw_data = 0;
-
-uint8_t servo_on = 0;
-
-uint8_t fifo_loaded = 0;
-
-float data_buffer[2000];
-uint16_t data_buff_cnt = 0;
-float data_filt[2000];
-
-float raw_filt = 0.0;
-
-static arm_fir_instance_f32 S;
-static float firState32[FIR_BLOCK_SIZE + FIR_SIZE -1];
-
-float dsp_mean = 0.0;		// Mean of measured data
-float dsp_var = 0.0;		// Variance of measured data
-float dsp_rms = 0.0;		// RMS of measured data
-float dsp_std = 0.0;		// Standard deviation of measured data
-
-/* fsample=2khz, fcut=10hz 6dB window blackmann */
-const float fir_coef[FIR_SIZE] = {
-    0.0f, 0.000005732734735f, 0.000023473445253f, 0.000054183281463f,
-    0.000099026801763f, 0.000159375398653f, 0.000236804160522f, 0.000333081901772f,
-    0.000450154358987f, 0.000590120442212f, 0.000755202025175f, 0.000947707216255f,
-    0.001169988303445f, 0.001424394315109f, 0.001713219913654f, 0.002038650214672f,
-    0.002402704209089f, 0.002807176904753f, 0.003253581002355f, 0.003743091132492f,
-    0.004276488907635f, 0.004854113794863f, 0.005475818179548f, 0.006140925921500f,
-    0.006848204880953f, 0.007595838978887f, 0.008381414227188f, 0.009201915934682f,
-    0.010053729638457f, 0.010932656936347f, 0.011833940632641f, 0.012752301059663f,
-    0.013681978918612f, 0.014616790227592f, 0.015550190582871f, 0.016475344076753f,
-    0.017385203391314f, 0.018272593617439f, 0.019130295142531f, 0.019951138645411f,
-    0.020728098228574f, 0.021454378962517f, 0.022123515605927f, 0.022729448974133f,
-    0.023266619071364f, 0.023730035871267f, 0.024115353822708f, 0.024418924003839f,
-    0.024637861177325f, 0.024770069867373f, 0.024814281612635f, 0.024770069867373f,
-    0.024637861177325f, 0.024418924003839f, 0.024115353822708f, 0.023730035871267f,
-    0.023266619071364f, 0.022729448974133f, 0.022123515605927f, 0.021454378962517f,
-    0.020728098228574f, 0.019951138645411f, 0.019130295142531f, 0.018272593617439f,
-    0.017385203391314f, 0.016475344076753f, 0.015550190582871f, 0.014616790227592f,
-    0.013681978918612f, 0.012752301059663f, 0.011833940632641f, 0.010932656936347f,
-    0.010053729638457f, 0.009201915934682f, 0.008381414227188f, 0.007595838978887f,
-    0.006848204880953f, 0.006140925921500f, 0.005475818179548f, 0.004854113794863f,
-    0.004276488907635f, 0.003743091132492f, 0.003253581002355f, 0.002807176904753f,
-    0.002402704209089f, 0.002038650214672f, 0.001713219913654f, 0.001424394315109f,
-    0.001169988303445f, 0.000947707216255f, 0.000755202025175f, 0.000590120442212f,
-    0.000450154358987f, 0.000333081901772f, 0.000236804160522f, 0.000159375398653f,
-    0.000099026801763f, 0.000054183281463f, 0.000023473445253f, 0.000005732734735f,
-    0.0f
-};
-
-
-
 /* USER CODE END 0 */
 
 /**
@@ -163,6 +96,7 @@ const float fir_coef[FIR_SIZE] = {
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 	uint32_t tick;
   /* USER CODE END 1 */
@@ -178,9 +112,6 @@ int main(void)
 
   /* Configure the system clock */
   SystemClock_Config();
-
-/* Configure the peripherals common clocks */
-  PeriphCommonClock_Config();
 
   /* USER CODE BEGIN SysInit */
 	/* Disable IWDG in debug mode */
@@ -203,8 +134,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 	Config_Init();
-	HAL_TIM_Base_Start_IT(&htim7);
 
+	systemParamInit();	// Init system default state
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -213,30 +144,14 @@ int main(void)
 
 	uint32_t tm = 0;				// Time counter
 
-	float buff[BUFF_SIZE];		// Raw values buffer implemented as FIFO
-	cleanBuffer(buff);
-
-	float raw_average = 0.0;
+/*
 	float hysteresis = 0.1;
 	float threshold = 1.0;
 	conf.meas.hysteresis = hysteresis;
 	conf.meas.threshlod = threshold;
 
 	uint32_t tm_analog = 0;
-
-	HAL_GPIO_WritePin(MUX_ON_GPIO_Port, MUX_ON_Pin, 1);
-	HAL_DAC_Start(&hdac1, DAC1_CHANNEL_1);
-	HAL_DAC_SetValue(&hdac1, DAC1_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
-
-	/* FIR Init */
-	arm_fir_init_f32(&S, FIR_SIZE, fir_coef, firState32, FIR_BLOCK_SIZE);
-
-	// ToDo - rozdelit zpracovani dat podle obsahu registru --> raw x fir filtering
-	// ToDo - vytvořit funkce na zpracovani dat, později rozdělit na moduly
-	// ToDo - zjistit vzorkovacku a navrhnout spravny FIR vcetne implementace - je spravne?
-	// ToDo - nakonec kontrola fci na statistiku - na jak velkem bufferu pocitat?
-	// ToDo - pro overeni funkcnosti firu generovat sum pricist k raw a co bude na vystupu
-
+*/
 	while (1)
 	{
 		CDC_PacketReceived();
@@ -247,65 +162,20 @@ int main(void)
 		{
 			tm = conf.sys.tick + 1000;
 
-			setParams();
+			setParams((uint8_t)conf.meas.offset,(uint8_t)conf.meas.gain);
 			HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 		}
-
-
 
 		/* After completed ADC conversion */
 		/* Read and store new value, calculate average and send via USB, set new DAC value */
 		if (new_raw_data)
 		{
-			raw_value = (((float) adc_value * k_16b) - 1.25) * 8;
-
-			// Add noise in range -0.5--0.5 V
-			//raw_value+=3.0f * random_float();
-
-			conf.meas.raw = raw_value;
-			insertNewVal(buff);
-			raw_average = average(buff);
-			conf.meas.average = raw_average;
-
-
-
-			/* FIR filter implementation on moving float buff */
-			//raw_filt = FIRCalc(buff, fir_coef);
-			arm_fir_f32(&S, &raw_value, &raw_filt, FIR_BLOCK_SIZE);
-			conf.dsp.fir = raw_filt;
-
-			/* Add to 2000 size buff */
-			//data_buffer[data_buff_cnt] = adc_value;
-			data_buffer[data_buff_cnt] = raw_value;
-			data_filt[data_buff_cnt] = raw_filt;
-			if (data_buff_cnt >= 2000)
-			{
-				data_buff_cnt = 0;
-			}
-			else
-			{
-				data_buff_cnt++;
-			}
-
-			/* Statistic functions */
-			arm_mean_f32(buff, STAT_BLOCK_SIZE, &dsp_mean);
-			arm_var_f32(buff, STAT_BLOCK_SIZE, &dsp_var);
-			arm_std_f32(buff, STAT_BLOCK_SIZE, &dsp_std);
-			arm_rms_f32(buff, STAT_BLOCK_SIZE, &dsp_rms);
-
-			/* Save to internal registers */
-			conf.dsp.mean = dsp_mean;
-			conf.dsp.var = dsp_var;
-			conf.dsp.std = dsp_std;
-			conf.dsp.rms = dsp_rms;
-
-
-			new_raw_data = 0;		// Turn flag off --> data processed
+			if(measProcess(adc_value) == STATUS_OK)
+				new_raw_data = 0;		// Turn flag off --> data processed
 		}
 
-
 		/* Every 2s change threshold value - depend on average */
-		if (conf.sys.tick > tm_analog)
+		/*if (conf.sys.tick > tm_analog)
 		{
 			tm_analog = conf.sys.tick + 2000;
 
@@ -330,10 +200,7 @@ int main(void)
 				HAL_DAC_SetValue(&hdac1, DAC1_CHANNEL_1, DAC_ALIGN_12B_R, dac_val );
 			}
 
-		}
-
-
-
+		}*/
 
 		if (TICK_EXPIRED(tick))
 		{
@@ -371,16 +238,14 @@ void SystemClock_Config(void)
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
-  /** Macro to configure the PLL clock source
-  */
-  __HAL_RCC_PLL_PLLSOURCE_CONFIG(RCC_PLLSOURCE_HSE);
-
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_LSI
+                              |RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 1;
@@ -409,34 +274,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) != HAL_OK)
-  {
-    Error_Handler();
-  }
-}
-
-/**
-  * @brief Peripherals Common Clock Configuration
-  * @retval None
-  */
-void PeriphCommonClock_Config(void)
-{
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
-
-  /** Initializes the peripherals clock
-  */
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB|RCC_PERIPHCLK_ADC;
-  PeriphClkInitStruct.PLL3.PLL3M = 1;
-  PeriphClkInitStruct.PLL3.PLL3N = 24;
-  PeriphClkInitStruct.PLL3.PLL3P = 2;
-  PeriphClkInitStruct.PLL3.PLL3Q = 4;
-  PeriphClkInitStruct.PLL3.PLL3R = 1;
-  PeriphClkInitStruct.PLL3.PLL3RGE = RCC_PLL3VCIRANGE_3;
-  PeriphClkInitStruct.PLL3.PLL3VCOSEL = RCC_PLL3VCOWIDE;
-  PeriphClkInitStruct.PLL3.PLL3FRACN = 0;
-  PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_PLL3;
-  PeriphClkInitStruct.AdcClockSelection = RCC_ADCCLKSOURCE_PLL3;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_6) != HAL_OK)
   {
     Error_Handler();
   }
@@ -444,84 +282,7 @@ void PeriphCommonClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-/*This function sets parameters for amplifier gain and turn ON/OFF DC compensation circuit (DC servo)*/
-Status_t setParams()
-{
-	Status_t ret = STATUS_OK;
-	/*DC Offset settings*/
-	if(conf.meas.offset)
-		HAL_GPIO_WritePin(SERVO_GPIO_Port, SERVO_Pin, 1);
-	else
-		HAL_GPIO_WritePin(SERVO_GPIO_Port, SERVO_Pin, 0);
 
-	/*AMP Gain settings*/
-	switch (conf.meas.gain)
-	{
-	case 0:
-		HAL_GPIO_WritePin(GAIN_1_GPIO_Port, GAIN_1_Pin, 1);
-		HAL_GPIO_WritePin(GAIN_3_GPIO_Port, GAIN_3_Pin, 0);
-		HAL_GPIO_WritePin(GAIN_10_GPIO_Port, GAIN_10_Pin, 0);
-		HAL_GPIO_WritePin(GAIN_20_GPIO_Port, GAIN_20_Pin, 0);
-		break;
-	case 1:
-		HAL_GPIO_WritePin(GAIN_1_GPIO_Port, GAIN_1_Pin, 0);
-		HAL_GPIO_WritePin(GAIN_3_GPIO_Port, GAIN_3_Pin, 1);
-		HAL_GPIO_WritePin(GAIN_10_GPIO_Port, GAIN_10_Pin, 0);
-		HAL_GPIO_WritePin(GAIN_20_GPIO_Port, GAIN_20_Pin, 0);
-		break;
-	case 2:
-		HAL_GPIO_WritePin(GAIN_1_GPIO_Port, GAIN_1_Pin, 0);
-		HAL_GPIO_WritePin(GAIN_3_GPIO_Port, GAIN_3_Pin, 0);
-		HAL_GPIO_WritePin(GAIN_10_GPIO_Port, GAIN_10_Pin, 1);
-		HAL_GPIO_WritePin(GAIN_20_GPIO_Port, GAIN_20_Pin, 0);
-		break;
-	case 3:
-		HAL_GPIO_WritePin(GAIN_1_GPIO_Port, GAIN_1_Pin, 0);
-		HAL_GPIO_WritePin(GAIN_3_GPIO_Port, GAIN_3_Pin, 0);
-		HAL_GPIO_WritePin(GAIN_10_GPIO_Port, GAIN_10_Pin, 0);
-		HAL_GPIO_WritePin(GAIN_20_GPIO_Port, GAIN_20_Pin, 1);
-		break;
-	default:
-		ret = STATUS_ERROR;	// Gain not defined - real gain == 100k/1k (feedback bypass through 100k resistor)
-	}
-
-	return ret;
-}
-
-
-void cleanBuffer(float* buff)
-{
-	for(int i=0;i<BUFF_SIZE;i++)
-		buff[i] = 0.0;
-}
-
-/* Insert new item into FIFO buffer */
-void insertNewVal(float* buff)
-{
-	/* Counter for loading fifo */
-	static uint8_t cnt = 0;
-	if(cnt >= BUFF_SIZE-1)
-		fifo_loaded = 1;
-	else
-	{
-		fifo_loaded = 0;
-		cnt++;
-	}
-	/* Insert new value and push old ones */
-	for(int i=0;i<BUFF_SIZE;i++)
-		buff[i] = buff[i+1];
-	buff[BUFF_SIZE-1] = raw_value;
-}
-
-/* Average of float array */
-float average(float* buff)
-{
-	float sum = 0.0;
-	for(int i=0;i<BUFF_SIZE;i++)
-		sum += buff[i];
-
-	return sum/BUFF_SIZE;
-}
 
 /* FIR filter implementation on moving float buff */
 float FIRCalc(float* fir_buff, float* fir_coef)
