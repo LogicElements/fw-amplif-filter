@@ -637,18 +637,28 @@
     "Id":134223216, 
     "VarType":"ENUM", 
     "Access":"RWF", 
-    "Description":"Source channel of the oscillogram\r\nAllowed values: \r\nDummy waveform - Internal fixed dummy waveform.\r\nAnalog channel 1 - Analog channel 1.\r\nKey phase marker - Key phase marker.\r\n", 
+    "Description":"Source channel of the oscillogram\r\nAllowed values: \r\nDummy waveform - Internal fixed dummy waveform.\r\nRaw value - .\r\nAverage  - .\r\nRMS - .\r\nMean - .\r\nVariance - .\r\nStandard deviation - .\r\nFIR-filtered - .\r\n", 
     "Value":"1",
     "NewValue":"1",
     "EnumStr": [
       "Dummy waveform",
-      "Analog channel 1",
-      "Key phase marker"
+      "Raw value",
+      "Average ",
+      "RMS",
+      "Mean",
+      "Variance",
+      "Standard deviation",
+      "FIR-filtered"
     ],
     "EnumValue": [
       0,
       1,
-      2
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
     ],
     "Reset":"1",
     "Units":"", 

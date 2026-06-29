@@ -189,8 +189,13 @@ typedef enum
 typedef enum
 {
   OSC_DUMMY = 0,
-  OSC_ANALOG = 1,
-  OSC_FILTERED = 2,
+  OSC_RAW = 1,
+  OSC_AVERAGE = 2,
+  OSC_RMS = 3,
+  OSC_MEAN = 4,
+  OSC_VAR = 5,
+  OSC_STD = 6,
+  OSC_FIR = 7,
 }osc_source_t ;
 
 typedef struct __packed __aligned(4)

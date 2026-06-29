@@ -34,6 +34,7 @@
 #include "usbd_cdc_if.h"
 #include "system_msp.h"
 #include "configuration.h"
+#include "oscillogram.h"
 
 #include "arm_math.h"
 
@@ -140,6 +141,7 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+	Oscil_Init();
 	tick = HAL_GetTick();
 
 	uint32_t tm = 0;				// Time counter
@@ -155,6 +157,7 @@ int main(void)
 	while (1)
 	{
 		CDC_PacketReceived();
+		Oscil_Handle();
 		conf.sys.tick = HAL_GetTick();
 
 		/* Check and update parameter settings every 1 sec */
@@ -172,6 +175,8 @@ int main(void)
 		{
 			if(measProcess(adc_value) == STATUS_OK)
 				new_raw_data = 0;		// Turn flag off --> data processed
+
+			Oscil_SampleAvailable();
 		}
 
 		/* Every 2s change threshold value - depend on average */
