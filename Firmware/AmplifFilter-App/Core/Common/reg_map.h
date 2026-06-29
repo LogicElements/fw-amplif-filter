@@ -91,6 +91,11 @@
 #define CONF_DSP_VAR               0x06008252u  ///< Variance
 #define CONF_DSP_STD               0x0600C252u  ///< Standard deviation
 #define CONF_DSP_FIR               0x06010252u  ///< Filtred value
+#define CONF_OSC_MODE              0x08000550u  ///< Mode of the oscilogram
+#define CONF_OSC_SOURCE            0x08001570u  ///< Oscillogram source
+#define CONF_OSC_START             0x08002150u  ///< Start sampling
+#define CONF_OSC_RESERVED          0x08003150u  ///< 
+#define CONF_OSC_FREQUENCY         0x08004252u  ///< Sampling frequency
 
 
 /** @} */
@@ -122,14 +127,14 @@
 #define CONF_REG_LOGGER_NUMBER     (0)
 #define CONF_REG_CALIB_NUMBER      (1)
 #define CONF_REG_SYNCED_NUMBER     (0)
-#define CONF_REG_FLASH_NUMBER      (2)
+#define CONF_REG_FLASH_NUMBER      (3)
 #define CONF_REG_LOGGER_LENGTH     (0)
 #define CONF_REG_CALIB_LENGTH      (8)
 #define CONF_REG_SYNCED_LENGTH     (0)
-#define CONF_REG_FLASH_LENGTH      (13)
+#define CONF_REG_FLASH_LENGTH      (18)
 #define CONF_REG_LOCAL_LENGTH      (0)
 
-#define CONF_DIM_CONDITION ((sizeof(conf_reg_sys_t) != 28) || (sizeof(conf_reg_fact_t) != 16) || (sizeof(conf_reg_firm_t) != 16) || (sizeof(conf_reg_calib_t) != 4) || (sizeof(conf_reg_meas_t) != 28) || (sizeof(conf_reg_dsp_t) != 20) || (sizeof(conf_reg_dbg_t) != 4) || 0)
+#define CONF_DIM_CONDITION ((sizeof(conf_reg_sys_t) != 28) || (sizeof(conf_reg_fact_t) != 16) || (sizeof(conf_reg_firm_t) != 16) || (sizeof(conf_reg_calib_t) != 4) || (sizeof(conf_reg_meas_t) != 28) || (sizeof(conf_reg_dsp_t) != 20) || (sizeof(conf_reg_dbg_t) != 4) || (sizeof(conf_reg_osc_t) != 8) || 0)
 
 
 /** @} */
@@ -173,6 +178,20 @@ typedef enum
   GAIN_10 = 2,
   GAIN_20 = 3,
 }meas_gain_t ;
+
+typedef enum
+{
+  OSC_DISABLED = 0,
+  OSC_ONE_SHOT = 1,
+  OSC_CONTINUOUS = 2,
+}osc_mode_t ;
+
+typedef enum
+{
+  OSC_DUMMY = 0,
+  OSC_ANALOG = 1,
+  OSC_FILTERED = 2,
+}osc_source_t ;
 
 typedef struct __packed __aligned(4)
 {
@@ -236,6 +255,15 @@ typedef struct __packed __aligned(4)
   uint32_t writes_conf;
 }conf_reg_dbg_t;
 
+typedef struct __packed __aligned(4)
+{
+  osc_mode_t mode;
+  osc_source_t source;
+  uint8_t start;
+  uint8_t reserved;
+  float frequency;
+}conf_reg_osc_t;
+
 
 typedef struct 
 {
@@ -247,7 +275,7 @@ typedef struct
   conf_reg_meas_t meas;
   conf_reg_dsp_t dsp;
   conf_reg_dbg_t dbg;
-  uint32_t res9;
+  conf_reg_osc_t osc;
   uint32_t res10;
   uint32_t res11;
   uint32_t res12;

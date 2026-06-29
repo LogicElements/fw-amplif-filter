@@ -32,13 +32,13 @@
 conf_reg_t conf;
 
 
-uint8_t* const CONF_REG[CONF_REG_BLOCK_NUMBER] = {(uint8_t*)&conf.sys, (uint8_t*)&conf.fact, (uint8_t*)&conf.firm, NULL, (uint8_t*)&conf.calib, (uint8_t*)&conf.meas, (uint8_t*)&conf.dsp, (uint8_t*)&conf.dbg, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, };
+uint8_t* const CONF_REG[CONF_REG_BLOCK_NUMBER] = {(uint8_t*)&conf.sys, (uint8_t*)&conf.fact, (uint8_t*)&conf.firm, NULL, (uint8_t*)&conf.calib, (uint8_t*)&conf.meas, (uint8_t*)&conf.dsp, (uint8_t*)&conf.dbg, (uint8_t*)&conf.osc, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, };
 
 const uint32_t CONF_REG_LIMIT[CONF_REG_BLOCK_NUMBER] = {
-28, 16, 16, 0, 4, 25, 20, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, };
+28, 16, 16, 0, 4, 25, 20, 4, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, };
 
 const uint32_t CONF_REG_FLASH[CONF_REG_FLASH_NUMBER] = {
-CONF_SYS_REGMAP_VERSION, CONF_MEAS_GAIN, };
+CONF_SYS_REGMAP_VERSION, CONF_MEAS_GAIN, CONF_OSC_SOURCE, };
 
 const uint32_t CONF_REG_LOGGER[CONF_REG_LOGGER_NUMBER] = {
 };
@@ -85,6 +85,9 @@ Status_t RegMap_RestoreFactoryValues(void)
   CONF_FLOAT(CONF_DSP_VAR)               = 0.0;
   CONF_FLOAT(CONF_DSP_STD)               = 0.0;
   CONF_FLOAT(CONF_DSP_FIR)               = 0.0;
+  CONF_BYTE(CONF_OSC_MODE)               = 1;
+  CONF_BYTE(CONF_OSC_SOURCE)             = 1;
+  CONF_FLOAT(CONF_OSC_FREQUENCY)         = 1000.0;
 
 
   return ret;
